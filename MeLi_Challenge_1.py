@@ -140,13 +140,13 @@ def existDatabase(databaseName):
     dbConnection.close()
     return databaseName in databases
 
-	
+
 def storeStatusAndUserInDB(user,hashedPassword,creationStatus):
     userName = user["name"]
     userLastName = user["lastName"]
     userEmail = user["email"]
 
-	createDataBaseForUsersABM()
+    createDataBaseForUsersABM()
     dbConnection = pymysql.connect(host=dbIp, user=dbLoginName, passwd=dbLoginPassword, db=dbName)
     dbConnectionCursor = dbConnection.cursor()
 
@@ -200,20 +200,20 @@ def sendConfirmationEmail(user,userRandomPassword,creationStatus):
 
 
 def createUsersInApp():
-	#Read CSV File
-	usersList = readCSVFile(csvFileRoute)
+    # Read CSV File
+    usersList = readCSVFile(csvFileRoute)
     for user in usersList:
-		#Create random password
+        # Create random password
         userRandomPassword = createRandomPassword()
-		#Hash password
+        # Hash password
         hashedPassword = hashPassword(userRandomPassword)
-		#Create user in OpenLDAP
+        # Create user in OpenLDAP
         creationStatus = createUserInOpenLDAP(user,hashedPassword)
-		#Store user in DB
+        # Store user in DB
         storeStatusAndUserInDB(user,hashedPassword,creationStatus)
-		#Send email confirmation
+        # Send email confirmation
         sendConfirmationEmail(user,userRandomPassword,creationStatus)
 
 
-#Create Users from User List
+# Create Users from User List
 createUsersInApp()
