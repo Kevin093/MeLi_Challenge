@@ -45,7 +45,7 @@ def devOpsIsInSubject(emailSubject):
 
 
 def devOpsIsInBody(emailBody):
-    return next((True for line in emailBody if "devops" in (line.get_payload()).lower()), False)
+    return next((True for line in emailBody if "devops" in (str(line.get_payload())).lower()), False)
 
 
 def convertDateTimeForMySQL(emailDate):
@@ -67,9 +67,8 @@ def insertDataIntoMySQLDb(emailDate,emailFrom,emailSubject,emailId):
 def createDataBaseForDevOps():
     dbConnection = pymysql.connect(host=dbIp, user=dbLoginName, passwd=dbLoginPassword)
     dbConnectionCursor = dbConnection.cursor()
-    databaseName = "devopsmeli"
-    createDBQuery = "CREATE DATABASE devopsmeli"
-    createTableQuery = '''CREATE TABLE `devopsmeli`.`devopsmails` (
+    createDBQuery = "CREATE DATABASE " + dbName
+    createTableQuery = '''CREATE TABLE `''' + dbName + '''`.`devopsmails` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `emailId` VARCHAR(45) NOT NULL,
   `emailDate` DATETIME NOT NULL,
@@ -79,11 +78,12 @@ def createDataBaseForDevOps():
   UNIQUE INDEX `id_UNIQUE` (`id` ASC),
   UNIQUE INDEX `emailId_UNIQUE` (`emailId` ASC));
   '''
-    if not existDatabase(databaseName):
+    if not existDatabase(dbName):
         dbConnectionCursor.execute(createDBQuery)
         dbConnectionCursor.execute(createTableQuery)
         dbConnection.commit()
         dbConnection.close()
+
 
 def existDatabase(databaseName):
     dbConnection = pymysql.connect(host=dbIp, user=dbLoginName, passwd=dbLoginPassword)
