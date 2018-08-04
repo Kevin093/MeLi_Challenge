@@ -95,11 +95,58 @@ def createUserInOpenLDAP(user,hashedPassword):
             return "Not created due to error"
 
 
+def createDataBaseForUsersABM():
+    dbConnection = pymysql.connect(host=dbIp, user=dbLoginName, passwd=dbLoginPassword)
+    dbConnectionCursor = dbConnection.cursor()
+    createDBQuery = "CREATE DATABASE " + dbName
+    createTableUsersQuery = '''CREATE TABLE `''' + dbName + '''`.`users` (
+  `user_id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_name` varchar(45) NOT NULL,
+  `user_lastname` varchar(45) NOT NULL,
+  `user_email` varchar(60) NOT NULL,
+  `user_password` varchar(50) NOT NULL,
+  `user_status` varchar(45) NOT NULL,
+  PRIMARY KEY (`user_id`),
+  UNIQUE KEY `user_id_UNIQUE` (`user_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8;
+  '''
+    createTableLogQuery = '''CREATE TABLE `''' + dbName + '''`.`log` (
+  `log_id` int(11) NOT NULL AUTO_INCREMENT,
+  `log_user` int(11) NOT NULL,
+  `log_message` varchar(45) NOT NULL,
+  `log_date` datetime DEFAULT NULL,
+  PRIMARY KEY (`log_id`),
+  UNIQUE KEY `log_id_UNIQUE` (`log_id`),
+  KEY `user_id_idx` (`log_user`),
+  CONSTRAINT `user_id_log_user` FOREIGN KEY (`log_user`) REFERENCES `users` (`user_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8;
+    '''
+    if not existDatabase(dbName):
+        dbConnectionCursor.execute(createDBQuery)
+        dbConnectionCursor.execute(createTableUsersQuery)
+        dbConnectionCursor.execute(createTableLogQuery)
+        dbConnection.commit()
+        dbConnection.close()
+
+
+def existDatabase(databaseName):
+    dbConnection = pymysql.connect(host=dbIp, user=dbLoginName, passwd=dbLoginPassword)
+    dbConnectionCursor = dbConnection.cursor()
+    selectDatabasesQuery = 'show databases;'
+    dbConnectionCursor.execute(selectDatabasesQuery)
+    databases = []
+    for database in dbConnectionCursor:
+        databases.append(database[0])
+    dbConnection.close()
+    return databaseName in databases
+
+	
 def storeStatusAndUserInDB(user,hashedPassword,creationStatus):
     userName = user["name"]
     userLastName = user["lastName"]
     userEmail = user["email"]
 
+	createDataBaseForUsersABM()
     dbConnection = pymysql.connect(host=dbIp, user=dbLoginName, passwd=dbLoginPassword, db=dbName)
     dbConnectionCursor = dbConnection.cursor()
 
@@ -152,15 +199,21 @@ def sendConfirmationEmail(user,userRandomPassword,creationStatus):
         smtpServer.sendmail(fromAddr, toAddr, textMsg)
 
 
-def createUsersInApp(usersList):
+def createUsersInApp():
+	#Read CSV File
+	usersList = readCSVFile(csvFileRoute)
     for user in usersList:
+		#Create random password
         userRandomPassword = createRandomPassword()
+		#Hash password
         hashedPassword = hashPassword(userRandomPassword)
+		#Create user in OpenLDAP
         creationStatus = createUserInOpenLDAP(user,hashedPassword)
+		#Store user in DB
         storeStatusAndUserInDB(user,hashedPassword,creationStatus)
+		#Send email confirmation
         sendConfirmationEmail(user,userRandomPassword,creationStatus)
 
-#Read CSV File
-usersList = readCSVFile(csvFileRoute)
+
 #Create Users from User List
-createUsersInApp(usersList)
+createUsersInApp()
